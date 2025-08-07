@@ -127,12 +127,14 @@ export default function Dashboard() {
   // Send location breadcrumbs when location changes
   useEffect(() => {
     if (activeTimeEntry && latitude && longitude) {
-      // Throttle breadcrumb updates to every 2 minutes
-      const lastBreadcrumb = breadcrumbs[breadcrumbs.length - 1];
+      // Throttle breadcrumb updates to every 2 minutes using localStorage
+      const storageKey = `lastBreadcrumb_${activeTimeEntry.id}`;
+      const lastBreadcrumbTime = localStorage.getItem(storageKey);
       const now = new Date();
       
-      if (!lastBreadcrumb || 
-          (now.getTime() - new Date(lastBreadcrumb.timestamp).getTime()) > 120000) {
+      if (!lastBreadcrumbTime || 
+          (now.getTime() - parseInt(lastBreadcrumbTime)) > 120000) {
+        localStorage.setItem(storageKey, now.getTime().toString());
         
         // Reverse geocode to get address (simplified - in production use a geocoding service)
         const address = currentLocation || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
@@ -145,7 +147,7 @@ export default function Dashboard() {
         });
       }
     }
-  }, [latitude, longitude, activeTimeEntry, breadcrumbs, accuracy, currentLocation]);
+  }, [latitude, longitude, activeTimeEntry?.id]);
 
   // Reverse geocoding effect (simplified)
   useEffect(() => {

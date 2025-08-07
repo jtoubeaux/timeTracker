@@ -46,9 +46,17 @@ export function SpreadsheetIntegration() {
   };
 
   const handleViewSpreadsheet = () => {
-    // In a real implementation, this would open the actual Google Sheets document
-    const googleSheetsUrl = import.meta.env.VITE_GOOGLE_SHEETS_URL || 'https://docs.google.com/spreadsheets';
-    window.open(googleSheetsUrl, '_blank');
+    // Demo spreadsheet - in production this would be the actual Google Sheets URL
+    const demoSheetUrl = import.meta.env.VITE_GOOGLE_SHEETS_URL || 
+      'https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit#gid=0';
+    
+    // Show toast to indicate what would happen in production
+    toast({
+      title: 'Opening Spreadsheet',
+      description: 'Opening demo Google Sheets. In production, this would open your actual employee tracking spreadsheet.',
+    });
+    
+    window.open(demoSheetUrl, '_blank');
   };
 
   const formatTime = (date: Date) => {
