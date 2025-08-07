@@ -47,7 +47,7 @@ export function SpreadsheetIntegration() {
 
   const handleViewSpreadsheet = () => {
     // In a real implementation, this would open the actual Google Sheets document
-    const googleSheetsUrl = process.env.VITE_GOOGLE_SHEETS_URL || 'https://docs.google.com/spreadsheets';
+    const googleSheetsUrl = import.meta.env.VITE_GOOGLE_SHEETS_URL || 'https://docs.google.com/spreadsheets';
     window.open(googleSheetsUrl, '_blank');
   };
 

@@ -26,8 +26,8 @@ export function LiveLocationMap({ breadcrumbs, isTracking }: LiveLocationMapProp
   
   const { latitude, longitude, accuracy, error } = useGeolocation({
     enableHighAccuracy: true,
-    timeout: 10000,
-    maximumAge: 30000,
+    timeout: 5000,
+    maximumAge: 0, // Always get fresh location data
   });
 
   // Load Leaflet script if not already loaded
@@ -67,10 +67,20 @@ export function LiveLocationMap({ breadcrumbs, isTracking }: LiveLocationMapProp
     const map = mapInstanceRef.current;
 
     // Clear existing markers and polylines
-    markersRef.current.forEach(marker => map.removeLayer(marker));
+    markersRef.current.forEach(marker => {
+      try {
+        map.removeLayer(marker);
+      } catch (e) {
+        // Marker might already be removed
+      }
+    });
     markersRef.current = [];
     if (polylineRef.current) {
-      map.removeLayer(polylineRef.current);
+      try {
+        map.removeLayer(polylineRef.current);
+      } catch (e) {
+        // Polyline might already be removed
+      }
     }
 
     // Add current location marker
@@ -142,16 +152,25 @@ export function LiveLocationMap({ breadcrumbs, isTracking }: LiveLocationMapProp
         opacity: 0.7,
       }).addTo(map);
 
-      // Fit map to show all points
-      const group = new window.L.featureGroup([polylineRef.current, currentMarker]);
-      map.fitBounds(group.getBounds().pad(0.1));
+      // Fit map to show all points with padding
+      try {
+        const group = new window.L.featureGroup([polylineRef.current, currentMarker]);
+        const bounds = group.getBounds();
+        if (bounds.isValid()) {
+          map.fitBounds(bounds.pad(0.1));
+        } else {
+          map.setView([latitude, longitude], 16);
+        }
+      } catch (e) {
+        map.setView([latitude, longitude], 16);
+      }
     } else {
-      // Center on current location if no breadcrumbs
-      map.setView([latitude, longitude], 15);
+      // Center on current location if no breadcrumbs with higher zoom
+      map.setView([latitude, longitude], 16);
     }
 
     setLastUpdate(new Date());
-  }, [latitude, longitude, accuracy, breadcrumbs]);
+  }, [latitude, longitude, breadcrumbs.length]);
 
   return (
     <Card className="card-elevated overflow-hidden">
@@ -215,9 +234,25 @@ export function LiveLocationMap({ breadcrumbs, isTracking }: LiveLocationMapProp
         </div>
 
         <div className="p-4 bg-muted/50 dark:bg-muted/20 border-t">
-          <div className="text-sm text-muted-foreground">
-            Last updated: {lastUpdate.toLocaleTimeString()} | 
-            {accuracy ? ` Accuracy: ±${Math.round(accuracy)} meters` : ' Accuracy: Unknown'}
+          <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+            <div>
+              <div className="font-medium text-foreground">Current Position</div>
+              {latitude && longitude ? (
+                <div>
+                  Lat: {latitude.toFixed(6)}<br/>
+                  Lng: {longitude.toFixed(6)}
+                </div>
+              ) : (
+                <div>Getting location...</div>
+              )}
+            </div>
+            <div>
+              <div className="font-medium text-foreground">Tracking Info</div>
+              <div>
+                Updated: {lastUpdate.toLocaleTimeString()}<br/>
+                {accuracy ? `Accuracy: ±${Math.round(accuracy)}m` : 'Accuracy: Unknown'}
+              </div>
+            </div>
           </div>
         </div>
       </CardContent>
