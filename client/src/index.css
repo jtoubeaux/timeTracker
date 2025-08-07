@@ -45,6 +45,34 @@
   --radius: 0.5rem;
 }
 
+/* Leaflet Map Styles */
+.leaflet-container {
+  height: 100% !important;
+  width: 100% !important;
+  z-index: 1;
+}
+
+.leaflet-tile-pane {
+  filter: none !important;
+}
+
+.leaflet-control-container .leaflet-control {
+  margin: 0 !important;
+}
+
+/* Custom marker styles */
+.current-location-marker,
+.breadcrumb-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Fix for Leaflet marker images */
+.leaflet-default-icon-path {
+  background-image: url('https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png');
+}
+
 .dark {
   --background: hsl(0 0% 7%);
   --foreground: hsl(0 0% 92%);

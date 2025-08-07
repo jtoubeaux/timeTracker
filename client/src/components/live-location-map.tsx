@@ -75,18 +75,39 @@ export function LiveLocationMap({ breadcrumbs, isTracking }: LiveLocationMapProp
     if (!mapRef.current || mapInstanceRef.current || !window.L) return;
 
     try {
+      // Clear any existing map instance
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+
       // Initialize map with better default location (center of US)
-      const map = window.L.map(mapRef.current).setView([39.8283, -98.5795], 4);
+      const map = window.L.map(mapRef.current, {
+        center: [39.8283, -98.5795],
+        zoom: 4,
+        zoomControl: true,
+        attributionControl: true
+      });
 
       // Add tile layer with better options
       window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19,
-        detectRetina: true
+        detectRetina: true,
+        crossOrigin: true
       }).addTo(map);
 
       mapInstanceRef.current = map;
       console.log('Map initialized successfully');
+      
+      // Force invalidate size after a short delay to ensure proper rendering
+      setTimeout(() => {
+        if (map) {
+          map.invalidateSize();
+          console.log('Map size invalidated for proper rendering');
+        }
+      }, 100);
+      
     } catch (error) {
       console.error('Failed to initialize map:', error);
     }
@@ -233,7 +254,11 @@ export function LiveLocationMap({ breadcrumbs, isTracking }: LiveLocationMapProp
       <CardContent className="p-0">
         <div className="h-64 bg-muted relative">
           {/* Map container */}
-          <div ref={mapRef} className="h-full w-full" />
+          <div 
+            ref={mapRef} 
+            className="h-full w-full leaflet-container" 
+            style={{ height: '256px', width: '100%' }}
+          />
           
           {/* Map not loaded fallback */}
           {!window?.L && (
