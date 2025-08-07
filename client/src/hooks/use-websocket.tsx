@@ -21,11 +21,16 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     onMessage,
     onError,
     onClose,
-    reconnectAttempts = 5,
-    reconnectInterval = 3000,
+    reconnectAttempts = 3,
+    reconnectInterval = 5000,
   } = options;
 
   const connect = useCallback(() => {
+    // Prevent multiple connections
+    if (wsRef.current && wsRef.current.readyState === WebSocket.CONNECTING) {
+      return;
+    }
+    
     try {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsUrl = `${protocol}//${window.location.host}/ws`;

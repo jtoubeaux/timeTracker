@@ -32,32 +32,64 @@ export function LiveLocationMap({ breadcrumbs, isTracking }: LiveLocationMapProp
 
   // Load Leaflet script if not already loaded
   useEffect(() => {
-    if (typeof window !== 'undefined' && !window.L) {
+    const loadLeaflet = () => {
+      if (window.L) {
+        initializeMap();
+        return;
+      }
+      
+      if (document.querySelector('script[src*="leaflet.js"]')) {
+        // Script is already loading, wait for it
+        const checkInterval = setInterval(() => {
+          if (window.L) {
+            clearInterval(checkInterval);
+            initializeMap();
+          }
+        }, 100);
+        
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          console.error('Leaflet failed to load within timeout');
+        }, 5000);
+        return;
+      }
+
       const script = document.createElement('script');
       script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.async = true;
-      document.head.appendChild(script);
-      
+      script.async = false; // Load synchronously to avoid race conditions
       script.onload = () => {
+        console.log('Leaflet loaded successfully');
         initializeMap();
       };
-    } else if (window.L) {
-      initializeMap();
-    }
+      script.onerror = () => {
+        console.error('Failed to load Leaflet script');
+      };
+      document.head.appendChild(script);
+    };
+
+    // Small delay to ensure DOM is ready
+    setTimeout(loadLeaflet, 100);
   }, []);
 
   const initializeMap = () => {
-    if (!mapRef.current || mapInstanceRef.current) return;
+    if (!mapRef.current || mapInstanceRef.current || !window.L) return;
 
-    // Initialize map
-    const map = window.L.map(mapRef.current).setView([40.7128, -74.0060], 13);
+    try {
+      // Initialize map with better default location (center of US)
+      const map = window.L.map(mapRef.current).setView([39.8283, -98.5795], 4);
 
-    // Add tile layer
-    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+      // Add tile layer with better options
+      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19,
+        detectRetina: true
+      }).addTo(map);
 
-    mapInstanceRef.current = map;
+      mapInstanceRef.current = map;
+      console.log('Map initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize map:', error);
+    }
   };
 
   // Update map with current location and breadcrumbs
