@@ -1,0 +1,132 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Condensed:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(0 0% 20%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(0 0% 20%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(0 0% 20%);
+  --primary: hsl(207 89% 42%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(140 56% 39%);
+  --secondary-foreground: hsl(0 0% 100%);
+  --muted: hsl(0 0% 96%);
+  --muted-foreground: hsl(0 0% 45%);
+  --accent: hsl(0 0% 96%);
+  --accent-foreground: hsl(0 0% 20%);
+  --destructive: hsl(0 71% 51%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(0 0% 90%);
+  --input: hsl(0 0% 96%);
+  --ring: hsl(207 89% 42%);
+  --warning: hsl(36 77% 49%);
+  --warning-foreground: hsl(0 0% 100%);
+  --surface: hsl(0 0% 96%);
+  --chart-1: hsl(207 89% 42%);
+  --chart-2: hsl(140 56% 39%);
+  --chart-3: hsl(36 77% 49%);
+  --chart-4: hsl(207 89% 42%);
+  --chart-5: hsl(140 56% 39%);
+  --sidebar: hsl(0 0% 96%);
+  --sidebar-foreground: hsl(0 0% 20%);
+  --sidebar-primary: hsl(207 89% 42%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(0 0% 96%);
+  --sidebar-accent-foreground: hsl(0 0% 20%);
+  --sidebar-border: hsl(0 0% 90%);
+  --sidebar-ring: hsl(207 89% 42%);
+  --font-roboto: 'Roboto', sans-serif;
+  --font-roboto-condensed: 'Roboto Condensed', sans-serif;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: hsl(0 0% 7%);
+  --foreground: hsl(0 0% 92%);
+  --card: hsl(0 0% 9%);
+  --card-foreground: hsl(0 0% 92%);
+  --popover: hsl(0 0% 7%);
+  --popover-foreground: hsl(0 0% 92%);
+  --primary: hsl(207 89% 42%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(140 56% 39%);
+  --secondary-foreground: hsl(0 0% 100%);
+  --muted: hsl(0 0% 15%);
+  --muted-foreground: hsl(0 0% 65%);
+  --accent: hsl(0 0% 15%);
+  --accent-foreground: hsl(0 0% 92%);
+  --destructive: hsl(0 71% 51%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(0 0% 15%);
+  --input: hsl(0 0% 15%);
+  --ring: hsl(207 89% 42%);
+  --warning: hsl(36 77% 49%);
+  --warning-foreground: hsl(0 0% 100%);
+  --surface: hsl(0 0% 7%);
+  --chart-1: hsl(207 89% 42%);
+  --chart-2: hsl(140 56% 39%);
+  --chart-3: hsl(36 77% 49%);
+  --chart-4: hsl(207 89% 42%);
+  --chart-5: hsl(140 56% 39%);
+  --sidebar: hsl(0 0% 9%);
+  --sidebar-foreground: hsl(0 0% 92%);
+  --sidebar-primary: hsl(207 89% 42%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(0 0% 15%);
+  --sidebar-accent-foreground: hsl(0 0% 92%);
+  --sidebar-border: hsl(0 0% 15%);
+  --sidebar-ring: hsl(207 89% 42%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-surface text-foreground antialiased;
+    font-family: var(--font-roboto);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-roboto-condensed);
+  }
+}
+
+.card-elevated {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.1);
+}
+
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s;
+}
+
+.ripple:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Leaflet map container */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+}
