@@ -13,7 +13,7 @@ export function SpreadsheetIntegration() {
   const queryClient = useQueryClient();
 
   // Fetch unsynced departures count
-  const { data: unsyncedDepartures = [], isLoading } = useQuery({
+  const { data: unsyncedDepartures = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/departures/unsynced'],
     refetchInterval: 30000, // Refetch every 30 seconds
   });

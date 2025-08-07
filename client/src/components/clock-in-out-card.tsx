@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Clock, MapPin, LogIn, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,12 +22,12 @@ export function ClockInOutCard({ currentEmployee, activeTimeEntry, currentLocati
   const { latitude, longitude, getCurrentPosition } = useGeolocation();
 
   // Update clock every second
-  useState(() => {
+  useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(interval);
-  });
+  }, []);
 
   const clockInMutation = useMutation({
     mutationFn: async () => {
@@ -47,7 +47,9 @@ export function ClockInOutCard({ currentEmployee, activeTimeEntry, currentLocati
 
       const response = await apiRequest('POST', '/api/time-entries/clock-in', {
         employeeId: currentEmployee.id,
+        clockInTime: new Date().toISOString(),
         clockInLocation: locationData,
+        isActive: true,
       });
       return response.json();
     },
@@ -147,7 +149,7 @@ export function ClockInOutCard({ currentEmployee, activeTimeEntry, currentLocati
                 <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-2"></div>
                 Clocked In since {formatTime(new Date(activeTimeEntry.clockInTime))}
                 <span className="ml-2 text-xs opacity-90">
-                  ({getTimeSince(activeTimeEntry.clockInTime)})
+                  ({getTimeSince(activeTimeEntry.clockInTime.toString())})
                 </span>
               </Badge>
             ) : (

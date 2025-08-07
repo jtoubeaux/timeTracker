@@ -140,7 +140,7 @@ export default function Dashboard() {
         breadcrumbMutation.mutate({
           latitude,
           longitude,
-          accuracy,
+          accuracy: accuracy || undefined,
           address,
         });
       }
@@ -225,7 +225,7 @@ export default function Dashboard() {
         {/* Clock In/Out Card */}
         <ClockInOutCard
           currentEmployee={currentEmployee}
-          activeTimeEntry={activeTimeEntry}
+          activeTimeEntry={activeTimeEntry || null}
           currentLocation={currentLocation}
         />
 
@@ -233,7 +233,7 @@ export default function Dashboard() {
         <QuickStats
           timeEntries={timeEntries}
           todayBreadcrumbs={todayBreadcrumbs}
-          activeTimeEntry={activeTimeEntry}
+          activeTimeEntry={activeTimeEntry || null}
         />
 
         {/* Live Location Map */}
@@ -254,7 +254,7 @@ export default function Dashboard() {
         {/* Weekly Timesheet */}
         <TimesheetView
           timeEntries={timeEntries}
-          activeTimeEntry={activeTimeEntry}
+          activeTimeEntry={activeTimeEntry || null}
         />
       </main>
 

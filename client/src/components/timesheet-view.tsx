@@ -165,7 +165,7 @@ export function TimesheetView({ timeEntries, activeTimeEntry }: TimesheetViewPro
                   <tr key={date} className={dayEntries.length === 0 ? 'opacity-50' : ''}>
                     <td className="py-3">{formatDate(date)}</td>
                     <td className="py-3">
-                      {firstEntry ? formatTime(firstEntry.clockInTime) : '-'}
+                      {firstEntry ? formatTime(firstEntry.clockInTime.toString()) : '-'}
                     </td>
                     <td className="py-3">
                       {hasActiveSession ? (
@@ -173,7 +173,7 @@ export function TimesheetView({ timeEntries, activeTimeEntry }: TimesheetViewPro
                           In Progress
                         </Badge>
                       ) : lastEntry?.clockOutTime ? (
-                        formatTime(lastEntry.clockOutTime)
+                        formatTime(lastEntry.clockOutTime.toString())
                       ) : firstEntry ? (
                         <Badge variant="outline" className="text-xs">
                           No Clock Out

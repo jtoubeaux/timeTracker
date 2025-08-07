@@ -295,7 +295,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.markDepartureSynced(departure.id);
           results.push({ id: departure.id, success: true });
         } catch (error) {
-          results.push({ id: departure.id, success: false, error: error.message });
+          results.push({ id: departure.id, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
         }
       }
       

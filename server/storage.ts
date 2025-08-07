@@ -76,6 +76,7 @@ export class MemStorage implements IStorage {
     const employee: Employee = {
       ...insertEmployee,
       id,
+      isActive: insertEmployee.isActive ?? true,
       createdAt: new Date(),
     };
     this.employees.set(id, employee);
@@ -114,6 +115,10 @@ export class MemStorage implements IStorage {
     const timeEntry: TimeEntry = {
       ...insertTimeEntry,
       id,
+      isActive: insertTimeEntry.isActive ?? true,
+      clockOutTime: insertTimeEntry.clockOutTime ?? null,
+      clockInLocation: insertTimeEntry.clockInLocation ?? null,
+      clockOutLocation: insertTimeEntry.clockOutLocation ?? null,
       totalHours: null,
     };
     this.timeEntries.set(id, timeEntry);
@@ -140,6 +145,8 @@ export class MemStorage implements IStorage {
     const breadcrumb: LocationBreadcrumb = {
       ...insertBreadcrumb,
       id,
+      address: insertBreadcrumb.address ?? null,
+      accuracy: insertBreadcrumb.accuracy ?? null,
       timestamp: new Date(),
     };
     this.locationBreadcrumbs.set(id, breadcrumb);
@@ -161,6 +168,7 @@ export class MemStorage implements IStorage {
     const departure: LocationDeparture = {
       ...insertDeparture,
       id,
+      distance: insertDeparture.distance ?? null,
       timestamp: new Date(),
       synced: false,
     };
