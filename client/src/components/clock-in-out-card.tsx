@@ -47,9 +47,7 @@ export function ClockInOutCard({ currentEmployee, activeTimeEntry, currentLocati
 
       const response = await apiRequest('POST', '/api/time-entries/clock-in', {
         employeeId: currentEmployee.id,
-        clockInTime: new Date().toISOString(),
         clockInLocation: locationData,
-        isActive: true,
       });
       return response.json();
     },

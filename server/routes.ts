@@ -118,34 +118,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/time-entries/clock-in", async (req, res) => {
     try {
-      const schema = insertTimeEntrySchema.extend({
-        clockInLocation: z.object({
-          lat: z.number(),
-          lng: z.number(),
-          address: z.string()
-        }).optional()
-      });
+      const { employeeId, clockInLocation } = req.body;
       
-      const validatedData = schema.parse(req.body);
+      // Basic validation
+      if (!employeeId) {
+        return res.status(400).json({ message: "Employee ID is required" });
+      }
       
       // Check if employee already has an active time entry
-      const existingActive = await storage.getActiveTimeEntry(validatedData.employeeId);
+      const existingActive = await storage.getActiveTimeEntry(employeeId);
       if (existingActive) {
         return res.status(400).json({ message: "Employee is already clocked in" });
       }
       
       const timeEntry = await storage.createTimeEntry({
-        ...validatedData,
+        employeeId,
         clockInTime: new Date(),
+        clockInLocation: clockInLocation || null,
         isActive: true
       });
       
       broadcast({ type: 'CLOCK_IN', timeEntry });
       res.status(201).json(timeEntry);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid clock-in data", errors: error.errors });
-      }
+      console.error('Clock-in error:', error);
       res.status(500).json({ message: "Failed to clock in" });
     }
   });
