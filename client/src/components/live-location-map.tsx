@@ -1,235 +1,49 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Wifi } from 'lucide-react';
+import { MapPin, Navigation, Clock, Target } from 'lucide-react';
 import { useGeolocation } from '@/hooks/use-geolocation';
 import type { LocationBreadcrumb } from '@shared/schema';
 
-// Leaflet imports (loaded from CDN)
-declare global {
-  interface Window {
-    L: any;
-  }
-}
-
-interface LiveLocationMapProps {
+interface LiveLocationTrackingProps {
   breadcrumbs: LocationBreadcrumb[];
   isTracking: boolean;
 }
 
-export function LiveLocationMap({ breadcrumbs, isTracking }: LiveLocationMapProps) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
-  const polylineRef = useRef<any>(null);
+export function LiveLocationMap({ breadcrumbs, isTracking }: LiveLocationTrackingProps) {
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   
   const { latitude, longitude, accuracy, error } = useGeolocation({
     enableHighAccuracy: true,
     timeout: 5000,
-    maximumAge: 0, // Always get fresh location data
+    maximumAge: 0,
   });
 
-  // Load Leaflet script if not already loaded
   useEffect(() => {
-    const loadLeaflet = () => {
-      if (window.L) {
-        initializeMap();
-        return;
-      }
-      
-      if (document.querySelector('script[src*="leaflet.js"]')) {
-        // Script is already loading, wait for it
-        const checkInterval = setInterval(() => {
-          if (window.L) {
-            clearInterval(checkInterval);
-            initializeMap();
-          }
-        }, 100);
-        
-        setTimeout(() => {
-          clearInterval(checkInterval);
-          console.error('Leaflet failed to load within timeout');
-        }, 5000);
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.async = false; // Load synchronously to avoid race conditions
-      script.onload = () => {
-        console.log('Leaflet loaded successfully');
-        initializeMap();
-      };
-      script.onerror = () => {
-        console.error('Failed to load Leaflet script');
-      };
-      document.head.appendChild(script);
-    };
-
-    // Small delay to ensure DOM is ready
-    setTimeout(loadLeaflet, 100);
-  }, []);
-
-  const initializeMap = () => {
-    if (!mapRef.current || mapInstanceRef.current || !window.L) return;
-
-    try {
-      // Clear any existing map instance
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-
-      // Initialize map with better default location (center of US)
-      const map = window.L.map(mapRef.current, {
-        center: [39.8283, -98.5795],
-        zoom: 4,
-        zoomControl: true,
-        attributionControl: true
-      });
-
-      // Add tile layer with better options
-      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19,
-        detectRetina: true,
-        crossOrigin: true
-      }).addTo(map);
-
-      mapInstanceRef.current = map;
-      console.log('Map initialized successfully');
-      
-      // Force invalidate size after a short delay to ensure proper rendering
-      setTimeout(() => {
-        if (map) {
-          map.invalidateSize();
-          console.log('Map size invalidated for proper rendering');
-        }
-      }, 100);
-      
-    } catch (error) {
-      console.error('Failed to initialize map:', error);
+    if (latitude && longitude) {
+      setLastUpdate(new Date());
     }
+  }, [latitude, longitude]);
+
+  const formatCoordinate = (coord: number) => {
+    return coord.toFixed(6);
   };
 
-  // Update map with current location and breadcrumbs
-  useEffect(() => {
-    if (!mapInstanceRef.current || !latitude || !longitude) return;
-
-    const map = mapInstanceRef.current;
-
-    // Clear existing markers and polylines
-    markersRef.current.forEach(marker => {
-      try {
-        map.removeLayer(marker);
-      } catch (e) {
-        // Marker might already be removed
-      }
-    });
-    markersRef.current = [];
-    if (polylineRef.current) {
-      try {
-        map.removeLayer(polylineRef.current);
-      } catch (e) {
-        // Polyline might already be removed
-      }
-    }
-
-    // Add current location marker
-    const currentLocationIcon = window.L.divIcon({
-      className: 'current-location-marker',
-      html: '<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>',
-      iconSize: [16, 16],
-      iconAnchor: [8, 8],
-    });
-
-    const currentMarker = window.L.marker([latitude, longitude], {
-      icon: currentLocationIcon
-    }).addTo(map);
-    markersRef.current.push(currentMarker);
-
-    // Add accuracy circle
-    if (accuracy) {
-      const accuracyCircle = window.L.circle([latitude, longitude], {
-        radius: accuracy,
-        color: '#3b82f6',
-        fillColor: '#3b82f6',
-        fillOpacity: 0.1,
-        weight: 1,
-      }).addTo(map);
-      markersRef.current.push(accuracyCircle);
-    }
-
-    // Add breadcrumb trail
-    if (breadcrumbs.length > 0) {
-      const breadcrumbPoints = breadcrumbs.map(bc => [
-        parseFloat(bc.latitude),
-        parseFloat(bc.longitude)
-      ]);
-
-      // Add breadcrumb markers
-      breadcrumbs.forEach((breadcrumb, index) => {
-        const isFirst = index === 0;
-        const isLast = index === breadcrumbs.length - 1;
-        
-        const breadcrumbIcon = window.L.divIcon({
-          className: 'breadcrumb-marker',
-          html: `<div class="w-3 h-3 ${isFirst ? 'bg-green-500' : isLast ? 'bg-red-500' : 'bg-orange-500'} rounded-full border border-white shadow"></div>`,
-          iconSize: [12, 12],
-          iconAnchor: [6, 6],
-        });
-
-        const marker = window.L.marker([parseFloat(breadcrumb.latitude), parseFloat(breadcrumb.longitude)], {
-          icon: breadcrumbIcon
-        }).addTo(map);
-
-        marker.bindPopup(`
-          <div class="text-xs">
-            <strong>${isFirst ? 'Start' : isLast ? 'Current' : 'Waypoint'}</strong><br>
-            Time: ${new Date(breadcrumb.timestamp).toLocaleTimeString()}<br>
-            ${breadcrumb.address || 'Unknown location'}
-          </div>
-        `);
-
-        markersRef.current.push(marker);
-      });
-
-      // Add current location to the trail
-      const allPoints = [...breadcrumbPoints, [latitude, longitude]];
+  const getLocationSummary = () => {
+    if (!latitude || !longitude) return "Waiting for location...";
+    
+    const totalDistance = breadcrumbs.length > 0 ? 
+      `${breadcrumbs.length} tracking points` : 
+      "No movement recorded";
       
-      // Create polyline for the trail
-      polylineRef.current = window.L.polyline(allPoints, {
-        color: '#3b82f6',
-        weight: 3,
-        opacity: 0.7,
-      }).addTo(map);
-
-      // Fit map to show all points with padding
-      try {
-        const group = new window.L.featureGroup([polylineRef.current, currentMarker]);
-        const bounds = group.getBounds();
-        if (bounds.isValid()) {
-          map.fitBounds(bounds.pad(0.1));
-        } else {
-          map.setView([latitude, longitude], 16);
-        }
-      } catch (e) {
-        map.setView([latitude, longitude], 16);
-      }
-    } else {
-      // Center on current location if no breadcrumbs with higher zoom
-      map.setView([latitude, longitude], 16);
-    }
-
-    setLastUpdate(new Date());
-  }, [latitude, longitude, breadcrumbs.length]);
+    return totalDistance;
+  };
 
   return (
     <Card className="card-elevated overflow-hidden">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-medium">Live Location Tracking</CardTitle>
+          <CardTitle className="text-lg font-medium">GPS Location Tracking</CardTitle>
           <div className="flex items-center space-x-2">
             {isTracking && !error ? (
               <>
@@ -251,67 +65,111 @@ export function LiveLocationMap({ breadcrumbs, isTracking }: LiveLocationMapProp
         </div>
       </CardHeader>
 
-      <CardContent className="p-0">
-        <div className="h-64 bg-muted relative">
-          {/* Map container */}
-          <div 
-            ref={mapRef} 
-            className="h-full w-full leaflet-container" 
-            style={{ height: '256px', width: '100%' }}
-          />
-          
-          {/* Map not loaded fallback */}
-          {!window?.L && (
-            <div className="absolute inset-0 flex items-center justify-center bg-muted">
-              <div className="text-center text-muted-foreground">
-                <MapPin className="h-8 w-8 mx-auto mb-2" />
-                <div className="text-sm">Loading map...</div>
+      <CardContent className="p-6">
+        {/* Location Status */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="flex items-center space-x-2">
+            <MapPin className="h-4 w-4 text-primary" />
+            <div>
+              <div className="text-xs text-muted-foreground">Status</div>
+              <div className="text-sm font-medium">
+                {isTracking ? "Tracking" : "Stopped"}
               </div>
             </div>
-          )}
-
-          {/* Error state */}
-          {error && (
-            <div className="absolute top-4 left-4 right-4">
-              <Badge variant="destructive" className="w-full justify-center">
-                <Wifi className="mr-2 h-4 w-4" />
-                {error}
-              </Badge>
-            </div>
-          )}
-
-          {/* Breadcrumb count indicator */}
-          {breadcrumbs.length > 0 && (
-            <div className="absolute top-4 right-4">
-              <Badge variant="secondary">
-                {breadcrumbs.length} waypoints
-              </Badge>
-            </div>
-          )}
-        </div>
-
-        <div className="p-4 bg-muted/50 dark:bg-muted/20 border-t">
-          <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Target className="h-4 w-4 text-secondary" />
             <div>
-              <div className="font-medium text-foreground">Current Position</div>
-              {latitude && longitude ? (
-                <div>
-                  Lat: {latitude.toFixed(6)}<br/>
-                  Lng: {longitude.toFixed(6)}
-                </div>
-              ) : (
-                <div>Getting location...</div>
-              )}
+              <div className="text-xs text-muted-foreground">Accuracy</div>
+              <div className="text-sm font-medium">
+                {accuracy ? `±${Math.round(accuracy)}m` : "Unknown"}
+              </div>
             </div>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Navigation className="h-4 w-4 text-chart-3" />
             <div>
-              <div className="font-medium text-foreground">Tracking Info</div>
-              <div>
-                Updated: {lastUpdate.toLocaleTimeString()}<br/>
-                {accuracy ? `Accuracy: ±${Math.round(accuracy)}m` : 'Accuracy: Unknown'}
+              <div className="text-xs text-muted-foreground">Points</div>
+              <div className="text-sm font-medium">
+                {breadcrumbs.length}
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Clock className="h-4 w-4 text-chart-4" />
+            <div>
+              <div className="text-xs text-muted-foreground">Last Update</div>
+              <div className="text-sm font-medium">
+                {lastUpdate.toLocaleTimeString()}
               </div>
             </div>
           </div>
         </div>
+
+        {/* Current Location */}
+        <div className="bg-muted/50 dark:bg-muted/20 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium">Current Location</h3>
+            {breadcrumbs.length > 0 && (
+              <Badge variant="secondary">
+                {breadcrumbs.length} waypoints tracked
+              </Badge>
+            )}
+          </div>
+          
+          {latitude && longitude ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Coordinates</div>
+                <div className="font-mono text-sm">
+                  {formatCoordinate(latitude)}, {formatCoordinate(longitude)}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Tracking Summary</div>
+                <div className="text-sm">
+                  {getLocationSummary()}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-8 text-muted-foreground">
+              <div className="text-center">
+                <MapPin className="h-8 w-8 mx-auto mb-2" />
+                <div className="text-sm">
+                  {error || "Waiting for GPS location..."}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Recent Activity */}
+        {breadcrumbs.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-sm font-medium mb-3">Recent Activity</h3>
+            <div className="space-y-2 max-h-32 overflow-y-auto">
+              {breadcrumbs.slice(-5).reverse().map((breadcrumb, index) => (
+                <div key={breadcrumb.id} className="flex items-center justify-between text-xs border-l-2 border-primary pl-3 py-1">
+                  <div>
+                    <span className="font-medium">
+                      {new Date(breadcrumb.timestamp).toLocaleTimeString()}
+                    </span>
+                    <span className="text-muted-foreground ml-2">
+                      {breadcrumb.address || `${parseFloat(breadcrumb.latitude).toFixed(4)}, ${parseFloat(breadcrumb.longitude).toFixed(4)}`}
+                    </span>
+                  </div>
+                  <div className="text-muted-foreground">
+                    {breadcrumb.accuracy && `±${Math.round(parseFloat(breadcrumb.accuracy))}m`}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
