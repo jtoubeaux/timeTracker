@@ -1,188 +1,134 @@
-import { 
-  type Employee, 
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import {
+  employeesTable,
+  timeEntriesTable,
+  locationBreadcrumbsTable,
+  locationDeparturesTable,
+  type Employee,
   type InsertEmployee,
   type TimeEntry,
   type InsertTimeEntry,
   type LocationBreadcrumb,
   type InsertLocationBreadcrumb,
   type LocationDeparture,
-  type InsertLocationDeparture
-} from "@shared/schema";
-import { randomUUID } from "crypto";
+  type InsertLocationDeparture,
+} from '@shared/schema';
+import { eq, and, desc, isNull } from 'drizzle-orm';
 
+// This interface is the contract for what our storage must do.
 export interface IStorage {
-  // Employee methods
   getEmployee(id: string): Promise<Employee | undefined>;
-  getEmployeeByEmail(email: string): Promise<Employee | undefined>;
   getAllEmployees(): Promise<Employee[]>;
   createEmployee(employee: InsertEmployee): Promise<Employee>;
-  updateEmployee(id: string, updates: Partial<Employee>): Promise<Employee | undefined>;
-  
-  // Time entry methods
   getTimeEntry(id: string): Promise<TimeEntry | undefined>;
   getActiveTimeEntry(employeeId: string): Promise<TimeEntry | undefined>;
   getTimeEntriesByEmployee(employeeId: string, limit?: number): Promise<TimeEntry[]>;
   createTimeEntry(timeEntry: InsertTimeEntry): Promise<TimeEntry>;
   updateTimeEntry(id: string, updates: Partial<TimeEntry>): Promise<TimeEntry | undefined>;
-  
-  // Location breadcrumb methods
   getBreadcrumbsByTimeEntry(timeEntryId: string): Promise<LocationBreadcrumb[]>;
   createBreadcrumb(breadcrumb: InsertLocationBreadcrumb): Promise<LocationBreadcrumb>;
-  
-  // Location departure methods
   getDeparturesByTimeEntry(timeEntryId: string): Promise<LocationDeparture[]>;
   getUnsyncedDepartures(): Promise<LocationDeparture[]>;
   createDeparture(departure: InsertLocationDeparture): Promise<LocationDeparture>;
   markDepartureSynced(id: string): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private employees: Map<string, Employee>;
-  private timeEntries: Map<string, TimeEntry>;
-  private locationBreadcrumbs: Map<string, LocationBreadcrumb>;
-  private locationDepartures: Map<string, LocationDeparture>;
+// This is the REAL implementation that uses our Neon database.
+class DrizzleStorage implements IStorage {
+  private db;
 
   constructor() {
-    this.employees = new Map();
-    this.timeEntries = new Map();
-    this.locationBreadcrumbs = new Map();
-    this.locationDepartures = new Map();
-    
-    // Create demo employee
-    const demoEmployee: Employee = {
-      id: randomUUID(),
-      name: "John Doe",
-      email: "john.doe@company.com",
-      isActive: true,
-      createdAt: new Date(),
-    };
-    this.employees.set(demoEmployee.id, demoEmployee);
+    if (!process.env.DATABASE_URL) {
+      throw new Error("DATABASE_URL environment variable is not set");
+    }
+    const client = postgres(process.env.DATABASE_URL, { ssl: 'require' });
+    this.db = drizzle(client);
   }
 
   async getEmployee(id: string): Promise<Employee | undefined> {
-    return this.employees.get(id);
-  }
-
-  async getEmployeeByEmail(email: string): Promise<Employee | undefined> {
-    return Array.from(this.employees.values()).find(emp => emp.email === email);
+    const result = await this.db.select().from(employeesTable).where(eq(employeesTable.id, id)).limit(1);
+    return result[0];
   }
 
   async getAllEmployees(): Promise<Employee[]> {
-    return Array.from(this.employees.values());
+    return this.db.select().from(employeesTable);
   }
 
-  async createEmployee(insertEmployee: InsertEmployee): Promise<Employee> {
-    const id = randomUUID();
-    const employee: Employee = {
-      ...insertEmployee,
-      id,
-      isActive: insertEmployee.isActive ?? true,
-      createdAt: new Date(),
-    };
-    this.employees.set(id, employee);
-    return employee;
-  }
-
-  async updateEmployee(id: string, updates: Partial<Employee>): Promise<Employee | undefined> {
-    const employee = this.employees.get(id);
-    if (!employee) return undefined;
-    
-    const updated = { ...employee, ...updates };
-    this.employees.set(id, updated);
-    return updated;
+  async createEmployee(employee: InsertEmployee): Promise<Employee> {
+    const result = await this.db.insert(employeesTable).values(employee).returning();
+    return result[0];
   }
 
   async getTimeEntry(id: string): Promise<TimeEntry | undefined> {
-    return this.timeEntries.get(id);
+    const result = await this.db.select().from(timeEntriesTable).where(eq(timeEntriesTable.id, id)).limit(1);
+    return result[0];
   }
 
   async getActiveTimeEntry(employeeId: string): Promise<TimeEntry | undefined> {
-    return Array.from(this.timeEntries.values()).find(
-      entry => entry.employeeId === employeeId && entry.isActive && !entry.clockOutTime
-    );
+    const result = await this.db.select().from(timeEntriesTable).where(
+      and(
+        eq(timeEntriesTable.employeeId, employeeId),
+        eq(timeEntriesTable.isActive, true),
+        isNull(timeEntriesTable.clockOutTime)
+      )
+    ).limit(1);
+    return result[0];
   }
 
-  async getTimeEntriesByEmployee(employeeId: string, limit?: number): Promise<TimeEntry[]> {
-    const entries = Array.from(this.timeEntries.values())
-      .filter(entry => entry.employeeId === employeeId)
-      .sort((a, b) => new Date(b.clockInTime).getTime() - new Date(a.clockInTime).getTime());
-    
-    return limit ? entries.slice(0, limit) : entries;
+  async getTimeEntriesByEmployee(employeeId: string, limit: number = 20): Promise<TimeEntry[]> {
+    return this.db.select().from(timeEntriesTable)
+      .where(eq(timeEntriesTable.employeeId, employeeId))
+      .orderBy(desc(timeEntriesTable.clockInTime))
+      .limit(limit);
   }
 
-  async createTimeEntry(insertTimeEntry: InsertTimeEntry): Promise<TimeEntry> {
-    const id = randomUUID();
-    const timeEntry: TimeEntry = {
-      ...insertTimeEntry,
-      id,
-      isActive: insertTimeEntry.isActive ?? true,
-      clockOutTime: insertTimeEntry.clockOutTime ?? null,
-      clockInLocation: insertTimeEntry.clockInLocation ?? null,
-      clockOutLocation: insertTimeEntry.clockOutLocation ?? null,
-      totalHours: null,
-    };
-    this.timeEntries.set(id, timeEntry);
-    return timeEntry;
+  async createTimeEntry(timeEntry: InsertTimeEntry): Promise<TimeEntry> {
+    const result = await this.db.insert(timeEntriesTable).values(timeEntry).returning();
+    return result[0];
   }
 
   async updateTimeEntry(id: string, updates: Partial<TimeEntry>): Promise<TimeEntry | undefined> {
-    const timeEntry = this.timeEntries.get(id);
-    if (!timeEntry) return undefined;
-    
-    const updated = { ...timeEntry, ...updates };
-    this.timeEntries.set(id, updated);
-    return updated;
+    const result = await this.db.update(timeEntriesTable)
+      .set(updates)
+      .where(eq(timeEntriesTable.id, id))
+      .returning();
+    return result[0];
   }
 
   async getBreadcrumbsByTimeEntry(timeEntryId: string): Promise<LocationBreadcrumb[]> {
-    return Array.from(this.locationBreadcrumbs.values())
-      .filter(breadcrumb => breadcrumb.timeEntryId === timeEntryId)
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    return this.db.select().from(locationBreadcrumbsTable)
+      .where(eq(locationBreadcrumbsTable.timeEntryId, timeEntryId))
+      .orderBy(desc(locationBreadcrumbsTable.timestamp));
   }
 
-  async createBreadcrumb(insertBreadcrumb: InsertLocationBreadcrumb): Promise<LocationBreadcrumb> {
-    const id = randomUUID();
-    const breadcrumb: LocationBreadcrumb = {
-      ...insertBreadcrumb,
-      id,
-      address: insertBreadcrumb.address ?? null,
-      accuracy: insertBreadcrumb.accuracy ?? null,
-      timestamp: new Date(),
-    };
-    this.locationBreadcrumbs.set(id, breadcrumb);
-    return breadcrumb;
+  async createBreadcrumb(breadcrumb: InsertLocationBreadcrumb): Promise<LocationBreadcrumb> {
+    const result = await this.db.insert(locationBreadcrumbsTable).values(breadcrumb).returning();
+    return result[0];
   }
 
   async getDeparturesByTimeEntry(timeEntryId: string): Promise<LocationDeparture[]> {
-    return Array.from(this.locationDepartures.values())
-      .filter(departure => departure.timeEntryId === timeEntryId)
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    return this.db.select().from(locationDeparturesTable)
+      .where(eq(locationDeparturesTable.timeEntryId, timeEntryId))
+      .orderBy(desc(locationDeparturesTable.timestamp));
   }
-
+  
   async getUnsyncedDepartures(): Promise<LocationDeparture[]> {
-    return Array.from(this.locationDepartures.values()).filter(departure => !departure.synced);
+    return this.db.select().from(locationDeparturesTable)
+      .where(eq(locationDeparturesTable.synced, false));
   }
 
-  async createDeparture(insertDeparture: InsertLocationDeparture): Promise<LocationDeparture> {
-    const id = randomUUID();
-    const departure: LocationDeparture = {
-      ...insertDeparture,
-      id,
-      distance: insertDeparture.distance ?? null,
-      timestamp: new Date(),
-      synced: false,
-    };
-    this.locationDepartures.set(id, departure);
-    return departure;
+  async createDeparture(departure: InsertLocationDeparture): Promise<LocationDeparture> {
+    const result = await this.db.insert(locationDeparturesTable).values(departure).returning();
+    return result[0];
   }
 
   async markDepartureSynced(id: string): Promise<void> {
-    const departure = this.locationDepartures.get(id);
-    if (departure) {
-      departure.synced = true;
-      this.locationDepartures.set(id, departure);
-    }
+    await this.db.update(locationDeparturesTable)
+      .set({ synced: true })
+      .where(eq(locationDeparturesTable.id, id));
   }
 }
 
-export const storage = new MemStorage();
+// Export the one, real, database-connected storage instance.
+export const storage = new DrizzleStorage();
