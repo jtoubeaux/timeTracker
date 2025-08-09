@@ -1,10 +1,10 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import {
-  employeesTable,
-  timeEntriesTable,
-  locationBreadcrumbsTable,
-  locationDeparturesTable,
+  employees, // Corrected name
+  timeEntries, // Corrected name
+  locationBreadcrumbs, // Corrected name
+  locationDepartures, // Corrected name
   type Employee,
   type InsertEmployee,
   type TimeEntry,
@@ -47,86 +47,86 @@ class DrizzleStorage implements IStorage {
   }
 
   async getEmployee(id: string): Promise<Employee | undefined> {
-    const result = await this.db.select().from(employeesTable).where(eq(employeesTable.id, id)).limit(1);
+    const result = await this.db.select().from(employees).where(eq(employees.id, id)).limit(1);
     return result[0];
   }
 
   async getAllEmployees(): Promise<Employee[]> {
-    return this.db.select().from(employeesTable);
+    return this.db.select().from(employees);
   }
 
   async createEmployee(employee: InsertEmployee): Promise<Employee> {
-    const result = await this.db.insert(employeesTable).values(employee).returning();
+    const result = await this.db.insert(employees).values(employee).returning();
     return result[0];
   }
 
   async getTimeEntry(id: string): Promise<TimeEntry | undefined> {
-    const result = await this.db.select().from(timeEntriesTable).where(eq(timeEntriesTable.id, id)).limit(1);
+    const result = await this.db.select().from(timeEntries).where(eq(timeEntries.id, id)).limit(1);
     return result[0];
   }
 
   async getActiveTimeEntry(employeeId: string): Promise<TimeEntry | undefined> {
-    const result = await this.db.select().from(timeEntriesTable).where(
+    const result = await this.db.select().from(timeEntries).where(
       and(
-        eq(timeEntriesTable.employeeId, employeeId),
-        eq(timeEntriesTable.isActive, true),
-        isNull(timeEntriesTable.clockOutTime)
+        eq(timeEntries.employeeId, employeeId),
+        eq(timeEntries.isActive, true),
+        isNull(timeEntries.clockOutTime)
       )
     ).limit(1);
     return result[0];
   }
 
   async getTimeEntriesByEmployee(employeeId: string, limit: number = 20): Promise<TimeEntry[]> {
-    return this.db.select().from(timeEntriesTable)
-      .where(eq(timeEntriesTable.employeeId, employeeId))
-      .orderBy(desc(timeEntriesTable.clockInTime))
+    return this.db.select().from(timeEntries)
+      .where(eq(timeEntries.employeeId, employeeId))
+      .orderBy(desc(timeEntries.clockInTime))
       .limit(limit);
   }
 
   async createTimeEntry(timeEntry: InsertTimeEntry): Promise<TimeEntry> {
-    const result = await this.db.insert(timeEntriesTable).values(timeEntry).returning();
+    const result = await this.db.insert(timeEntries).values(timeEntry).returning();
     return result[0];
   }
 
   async updateTimeEntry(id: string, updates: Partial<TimeEntry>): Promise<TimeEntry | undefined> {
-    const result = await this.db.update(timeEntriesTable)
+    const result = await this.db.update(timeEntries)
       .set(updates)
-      .where(eq(timeEntriesTable.id, id))
+      .where(eq(timeEntries.id, id))
       .returning();
     return result[0];
   }
 
   async getBreadcrumbsByTimeEntry(timeEntryId: string): Promise<LocationBreadcrumb[]> {
-    return this.db.select().from(locationBreadcrumbsTable)
-      .where(eq(locationBreadcrumbsTable.timeEntryId, timeEntryId))
-      .orderBy(desc(locationBreadcrumbsTable.timestamp));
+    return this.db.select().from(locationBreadcrumbs)
+      .where(eq(locationBreadcrumbs.timeEntryId, timeEntryId))
+      .orderBy(desc(locationBreadcrumbs.timestamp));
   }
 
   async createBreadcrumb(breadcrumb: InsertLocationBreadcrumb): Promise<LocationBreadcrumb> {
-    const result = await this.db.insert(locationBreadcrumbsTable).values(breadcrumb).returning();
+    const result = await this.db.insert(locationBreadcrumbs).values(breadcrumb).returning();
     return result[0];
   }
 
   async getDeparturesByTimeEntry(timeEntryId: string): Promise<LocationDeparture[]> {
-    return this.db.select().from(locationDeparturesTable)
-      .where(eq(locationDeparturesTable.timeEntryId, timeEntryId))
-      .orderBy(desc(locationDeparturesTable.timestamp));
+    return this.db.select().from(locationDepartures)
+      .where(eq(locationDepartures.timeEntryId, timeEntryId))
+      .orderBy(desc(locationDepartures.timestamp));
   }
   
   async getUnsyncedDepartures(): Promise<LocationDeparture[]> {
-    return this.db.select().from(locationDeparturesTable)
-      .where(eq(locationDeparturesTable.synced, false));
+    return this.db.select().from(locationDepartures)
+      .where(eq(locationDepartures.synced, false));
   }
 
   async createDeparture(departure: InsertLocationDeparture): Promise<LocationDeparture> {
-    const result = await this.db.insert(locationDeparturesTable).values(departure).returning();
+    const result = await this.db.insert(locationDepartures).values(departure).returning();
     return result[0];
   }
 
   async markDepartureSynced(id: string): Promise<void> {
-    await this.db.update(locationDeparturesTable)
+    await this.db.update(locationDepartures)
       .set({ synced: true })
-      .where(eq(locationDeparturesTable.id, id));
+      .where(eq(locationDepartures.id, id));
   }
 }
 
