@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeTracker Pro - Employee GPS Time Keeper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#E3F2FD',
+                            100: '#BBDEFB',
+                            500: '#1976D2',
+                            600: '#1565C0',
+                            700: '#0D47A1'
+                        },
+                        success: {
+                            50: '#E8F5E8',
+                            500: '#4CAF50',
+                            600: '#43A047'
+                        },
+                        error: {
+                            50: '#FFEBEE',
+                            500: '#F44336',
+                            600: '#E53935'
+                        },
+                        warning: {
+                            50: '#FFF3E0',
+                            500: '#FF9800',
+                            600: '#FB8C00'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body class="font-inter bg-gray-50">
+    <!-- @COMPONENT: AppHeader [navigation, user info] -->
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-clock text-white text-sm"></i>
+                    </div>
+                    <h1 class="text-xl font-semibold text-gray-900">TimeTracker Pro</h1>
+                </div>
+                
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#dashboard" class="text-primary-600 font-medium border-b-2 border-primary-600 pb-1">Dashboard</a>
+                    <a href="#timesheet" class="text-gray-500 hover:text-gray-700">Timesheets</a>
+                    <a href="#employees" class="text-gray-500 hover:text-gray-700">Employees</a>
+                    <a href="#reports" class="text-gray-500 hover:text-gray-700">Reports</a>
+                </nav>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                            <span class="text-sm font-medium text-gray-700" data-bind="user.initials">JD</span>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700" data-bind="user.name" data-mock="true">John Doe</span>
+                    </div>
+                    <button class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- @END_COMPONENT: AppHeader -->
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- @COMPONENT: ClockInOutWidget [primary action, status display] -->
+        <div class="mb-8">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                    <div class="mb-6 lg:mb-0">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">Clock Status</h2>
+                        <div class="flex items-center space-x-3">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-3 h-3 bg-success-500 rounded-full animate-pulse"></div>
+                                <span class="text-success-600 font-medium">Currently Clocked In</span>
+                            </div>
+                            <span class="text-sm text-gray-500">Started at 9:15 AM</span>
+                        </div>
+                        
+                        <!-- @STATE: currentLocation:object, isTracking:boolean -->
+                        <div class="mt-4 p-3 bg-primary-50 rounded-lg">
+                            <div class="flex items-center space-x-2 text-sm">
+                                <i class="fas fa-map-marker-alt text-primary-500"></i>
+                                <span class="text-primary-700 font-medium">Current Location:</span>
+                            </div>
+                            <p class="text-sm text-primary-600 mt-1" data-bind="currentLocation.address" data-mock="true">
+                                123 Business District, San Francisco, CA 94105
+                            </p>
+                            <p class="text-xs text-primary-500 mt-1">
+                                <span data-bind="currentLocation.coordinates" data-mock="true">37.7749° N, 122.4194° W</span>
+                                <span class="ml-2">• Last updated: <span data-bind="location.lastUpdate" data-mock="true">2 min ago</span></span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <!-- @FUNCTIONALITY: GPS tracking should start/stop with clock actions -->
+                        <button 
+                            data-event="click:handleClockOut" 
+                            data-implementation="Should stop GPS tracking and calculate session hours"
+                            class="bg-error-500 hover:bg-error-600 text-white px-8 py-3 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center space-x-2 min-w-[160px]">
+                            <i class="fas fa-stop"></i>
+                            <span>Clock Out</span>
+                        </button>
+                        
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-primary-600" data-bind="currentSession.duration" data-mock="true">
+                                3h 45m
+                            </div>
+                            <div class="text-sm text-gray-500">Today's Time</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: ClockInOutWidget -->
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- @COMPONENT: LiveMapView [GPS breadcrumbs, real-time tracking] -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Live GPS Tracking</h3>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-2 h-2 bg-success-500 rounded-full animate-pulse"></div>
+                        <span class="text-sm text-success-600 font-medium">Tracking Active</span>
+                    </div>
+                </div>
+                
+                <!-- @FUNCTIONALITY: This map should implement real-time GPS breadcrumb tracking using browser geolocation API -->
+                <div class="bg-gray-100 rounded-lg h-80 relative overflow-hidden">
+                    <!-- Modern city view with GPS tracking interface -->
+                    <img 
+                        src="https://images.unsplash.com/photo-1571902943202-507ec2618e8f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=400" 
+                        alt="Aerial view of modern city with tracking interface overlay" 
+                        class="w-full h-full object-cover"
+                        data-mock-image="true"
+                        data-implementation="Replace with interactive map component (Google Maps/Mapbox)"
+                    />
+                    
+                    <!-- Map overlay controls -->
+                    <div class="absolute top-4 right-4 bg-white rounded-lg shadow-md p-2 space-y-2">
+                        <button class="w-8 h-8 bg-white hover:bg-gray-50 rounded border flex items-center justify-center">
+                            <i class="fas fa-plus text-gray-600 text-sm"></i>
+                        </button>
+                        <button class="w-8 h-8 bg-white hover:bg-gray-50 rounded border flex items-center justify-center">
+                            <i class="fas fa-minus text-gray-600 text-sm"></i>
+                        </button>
+                        <button class="w-8 h-8 bg-primary-500 hover:bg-primary-600 rounded text-white flex items-center justify-center">
+                            <i class="fas fa-location-arrow text-sm"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- GPS breadcrumb trail indicators -->
+                    <div class="absolute bottom-4 left-4 bg-white rounded-lg shadow-md p-3">
+                        <div class="text-sm font-medium text-gray-900 mb-2">Today's Trail</div>
+                        <div class="flex items-center space-x-2 text-sm text-gray-600">
+                            <div class="w-3 h-3 bg-primary-500 rounded-full"></div>
+                            <span data-mock="true">47 GPS points</span>
+                        </div>
+                        <div class="flex items-center space-x-2 text-sm text-gray-600 mt-1">
+                            <div class="w-3 h-3 bg-success-500 rounded-full"></div>
+                            <span data-mock="true">3.2 miles traveled</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 flex items-center justify-between text-sm">
+                    <div class="flex items-center space-x-2 text-gray-500">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Location tracking active only while clocked in</span>
+                    </div>
+                    <button class="text-primary-600 hover:text-primary-700 font-medium">View History</button>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: LiveMapView -->
+
+            <!-- @COMPONENT: TodayTimesheet [current day summary] -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Today's Timesheet</h3>
+                    <span class="text-sm text-gray-500">November 15, 2024</span>
+                </div>
+                
+                <div class="space-y-4">
+                    <!-- @MAP: todayEntries.map(entry => ( -->
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-3 h-3 bg-success-500 rounded-full"></div>
+                            <div>
+                                <div class="font-medium text-gray-900" data-mock="true">Morning Session</div>
+                                <div class="text-sm text-gray-500">9:15 AM - In Progress</div>
+                                <div class="text-xs text-gray-400 flex items-center mt-1">
+                                    <i class="fas fa-map-marker-alt mr-1"></i>
+                                    <span data-mock="true">Business District Office</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-semibold text-gray-900" data-mock="true">3h 45m</div>
+                            <div class="text-sm text-success-600">Active</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg opacity-60">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-3 h-3 bg-gray-300 rounded-full"></div>
+                            <div>
+                                <div class="font-medium text-gray-700" data-mock="true">Previous Session</div>
+                                <div class="text-sm text-gray-500">8:00 AM - 9:00 AM</div>
+                                <div class="text-xs text-gray-400 flex items-center mt-1">
+                                    <i class="fas fa-map-marker-alt mr-1"></i>
+                                    <span data-mock="true">Home Office</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-semibold text-gray-700" data-mock="true">1h 00m</div>
+                            <div class="text-sm text-gray-500">Completed</div>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+                
+                <div class="mt-6 p-4 bg-primary-50 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <span class="text-primary-700 font-medium">Total Hours Today</span>
+                        <span class="text-2xl font-bold text-primary-600" data-bind="dailyTotal" data-mock="true">4h 45m</span>
+                    </div>
+                    <div class="mt-2 text-sm text-primary-600">
+                        Target: 8h 00m • <span class="font-medium" data-mock="true">3h 15m remaining</span>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: TodayTimesheet -->
+        </div>
+
+        <!-- @COMPONENT: EmployeeManagement [admin dashboard] -->
+        <div class="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 sm:mb-0">Employee Overview</h3>
+                <div class="flex space-x-3">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            placeholder="Search employees..."
+                            class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        />
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
+                    </div>
+                    <button class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        Add Employee
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Employee table -->
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="text-left py-3 px-4 font-medium text-gray-700 text-sm">Employee</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-700 text-sm">Status</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-700 text-sm">Current Location</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-700 text-sm">Today's Hours</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-700 text-sm">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        <!-- @MAP: employees.map(employee => ( -->
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                                        <span class="text-sm font-medium text-primary-700" data-mock="true">JD</span>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-gray-900" data-mock="true">John Doe</div>
+                                        <div class="text-sm text-gray-500" data-mock="true">Field Technician</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-4">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-800">
+                                    <div class="w-1.5 h-1.5 bg-success-500 rounded-full mr-1"></div>
+                                    Clocked In
+                                </span>
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="text-sm text-gray-900" data-mock="true">Business District</div>
+                                <div class="text-xs text-gray-500" data-mock="true">Updated 2 min ago</div>
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="font-medium text-gray-900" data-mock="true">4h 45m</div>
+                                <div class="text-xs text-gray-500" data-mock="true">Started 9:15 AM</div>
+                            </td>
+                            <td class="py-3 px-4">
+                                <button class="text-primary-600 hover:text-primary-700 text-sm font-medium mr-3">View Trail</button>
+                                <button class="text-gray-600 hover:text-gray-700 text-sm">Edit</button>
+                            </td>
+                        </tr>
+                        
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                                        <span class="text-sm font-medium text-gray-700" data-mock="true">SM</span>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-gray-900" data-mock="true">Sarah Miller</div>
+                                        <div class="text-sm text-gray-500" data-mock="true">Project Manager</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-4">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    <div class="w-1.5 h-1.5 bg-gray-400 rounded-full mr-1"></div>
+                                    Clocked Out
+                                </span>
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="text-sm text-gray-500" data-mock="true">Not tracking</div>
+                                <div class="text-xs text-gray-400" data-mock="true">Last: 5:30 PM yesterday</div>
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="font-medium text-gray-900" data-mock="true">0h 00m</div>
+                                <div class="text-xs text-gray-500" data-mock="true">Not started</div>
+                            </td>
+                            <td class="py-3 px-4">
+                                <button class="text-gray-400 text-sm font-medium mr-3">View Trail</button>
+                                <button class="text-gray-600 hover:text-gray-700 text-sm">Edit</button>
+                            </td>
+                        </tr>
+                        
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-warning-100 rounded-full flex items-center justify-center">
+                                        <span class="text-sm font-medium text-warning-700" data-mock="true">MJ</span>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-gray-900" data-mock="true">Mike Johnson</div>
+                                        <div class="text-sm text-gray-500" data-mock="true">Field Technician</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-4">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-800">
+                                    <div class="w-1.5 h-1.5 bg-warning-500 rounded-full mr-1"></div>
+                                    GPS Issue
+                                </span>
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="text-sm text-warning-600" data-mock="true">Location unavailable</div>
+                                <div class="text-xs text-gray-500" data-mock="true">Started 8:00 AM</div>
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="font-medium text-gray-900" data-mock="true">5h 15m</div>
+                                <div class="text-xs text-warning-600" data-mock="true">No GPS tracking</div>
+                            </td>
+                            <td class="py-3 px-4">
+                                <button class="text-warning-600 hover:text-warning-700 text-sm font-medium mr-3">Fix GPS</button>
+                                <button class="text-gray-600 hover:text-gray-700 text-sm">Edit</button>
+                            </td>
+                        </tr>
+                        <!-- @END_MAP )) -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: EmployeeManagement -->
+
+        <!-- @COMPONENT: QuickStats [summary metrics] -->
+        <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Active Employees</p>
+                        <p class="text-2xl font-bold text-gray-900" data-bind="stats.activeEmployees" data-mock="true">2</p>
+                        <p class="text-xs text-success-600 mt-1">
+                            <i class="fas fa-arrow-up mr-1"></i>
+                            <span data-mock="true">Currently tracking</span>
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-success-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Total Hours Today</p>
+                        <p class="text-2xl font-bold text-gray-900" data-bind="stats.totalHours" data-mock="true">10h 00m</p>
+                        <p class="text-xs text-primary-600 mt-1">
+                            <i class="fas fa-clock mr-1"></i>
+                            <span data-mock="true">Across all employees</span>
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-clock text-primary-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">GPS Data Points</p>
+                        <p class="text-2xl font-bold text-gray-900" data-bind="stats.gpsPoints" data-mock="true">127</p>
+                        <p class="text-xs text-gray-600 mt-1">
+                            <i class="fas fa-map-marker-alt mr-1"></i>
+                            <span data-mock="true">Collected today</span>
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-map-marked-alt text-gray-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Issues</p>
+                        <p class="text-2xl font-bold text-gray-900" data-bind="stats.issues" data-mock="true">1</p>
+                        <p class="text-xs text-warning-600 mt-1">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            <span data-mock="true">GPS permission needed</span>
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-warning-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: QuickStats -->
+    </main>
+
+    <!-- @COMPONENT: GPSPermissionModal [error handling] -->
+    <div id="gpsModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div class="flex items-center justify-center w-16 h-16 mx-auto bg-warning-100 rounded-full mb-4">
+                <i class="fas fa-location-arrow text-warning-600 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 text-center mb-2">Location Access Required</h3>
+            <p class="text-gray-600 text-center mb-6">
+                TimeTracker Pro needs access to your location to track your work hours and create GPS breadcrumbs. 
+                Your location is only tracked while you're clocked in.
+            </p>
+            <div class="flex space-x-3">
+                <button class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium">
+                    Not Now
+                </button>
+                <button 
+                    data-event="click:requestLocationPermission"
+                    data-implementation="Should call navigator.geolocation.getCurrentPosition()"
+                    class="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-2 px-4 rounded-lg font-medium">
+                    Allow Location
+                </button>
+            </div>
+            <p class="text-xs text-gray-500 text-center mt-4">
+                <i class="fas fa-shield-alt mr-1"></i>
+                Your privacy is protected - location tracking stops when you clock out
+            </p>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: GPSPermissionModal -->
+
+    <script>
+        // TODO: Implement business logic, API calls, and state management
+        (function() {
+            // Mock data and UI interactions for demo purposes only
+            
+            // Simulate real-time updates
+            let mockCurrentTime = { hours: 3, minutes: 45 };
+            
+            function updateMockTime() {
+                mockCurrentTime.minutes += 1;
+                if (mockCurrentTime.minutes >= 60) {
+                    mockCurrentTime.hours += 1;
+                    mockCurrentTime.minutes = 0;
+                }
+                
+                const timeElements = document.querySelectorAll('[data-bind*="duration"], [data-bind*="currentSession"]');
+                timeElements.forEach(el => {
+                    if (el.textContent.includes('h') && el.textContent.includes('m')) {
+                        el.textContent = `${mockCurrentTime.hours}h ${mockCurrentTime.minutes}m`;
+                    }
+                });
+            }
+            
+            // Update time every minute (demo purposes - actual app should use real data)
+            setInterval(updateMockTime, 60000);
+            
+            // Mock GPS permission handling
+            function handleGPSPermission() {
+                // In real implementation: navigator.geolocation.getCurrentPosition()
+                document.getElementById('gpsModal').classList.add('hidden');
+            }
+            
+            // Show GPS modal for demo
+            setTimeout(() => {
+                // document.getElementById('gpsModal').classList.remove('hidden');
+            }, 3000);
+            
+            // Mock location updates
+            const locations = [
+                '123 Business District, San Francisco, CA 94105',
+                '456 Market Street, San Francisco, CA 94102',
+                '789 Mission Bay, San Francisco, CA 94158'
+            ];
+            
+            let currentLocationIndex = 0;
+            function updateLocation() {
+                const locationElement = document.querySelector('[data-bind="currentLocation.address"]');
+                if (locationElement) {
+                    locationElement.textContent = locations[currentLocationIndex];
+                    currentLocationIndex = (currentLocationIndex + 1) % locations.length;
+                }
+            }
+            
+            // Update location every 5 minutes for demo
+            setInterval(updateLocation, 300000);
+            
+        })();
+    </script>
+</body>
+</html>

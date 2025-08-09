@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeKeeper Pro - Employee Time & Location Tracking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    'roboto': ['Roboto', 'sans-serif'],
+                    'roboto-condensed': ['Roboto Condensed', 'sans-serif']
+                },
+                colors: {
+                    primary: '#1976D2',
+                    secondary: '#388E3C',
+                    error: '#D32F2F',
+                    warning: '#F57C00',
+                    surface: '#F5F5F5'
+                }
+            }
+        }
+    };
+    </script>
+    <style>
+        .card-elevated {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.1);
+        }
+        .ripple {
+            position: relative;
+            overflow: hidden;
+        }
+        .ripple::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+        }
+        .ripple:active::before {
+            width: 300px;
+            height: 300px;
+        }
+    </style>
+</head>
+<body class="bg-surface font-roboto text-gray-800">
+    
+    <!-- @COMPONENT: Header [navigation, user info, status indicators] -->
+    <header class="bg-primary text-white shadow-lg">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-clock text-2xl"></i>
+                    <h1 class="text-xl font-roboto-condensed font-bold">TimeKeeper Pro</h1>
+                </div>
+                
+                <!-- @STATE: currentUser:object = {name: "John Doe", status: "clocked_in"} -->
+                <div class="flex items-center space-x-4">
+                    <div class="hidden md:flex items-center space-x-2">
+                        <div class="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
+                        <span class="text-sm" data-bind="user.name">John Doe</span>
+                        <span class="text-xs opacity-75">Clocked In</span>
+                    </div>
+                    <button class="md:hidden text-white">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- @END_COMPONENT: Header -->
+
+    <main class="container mx-auto px-4 py-6 space-y-6">
+        
+        <!-- @COMPONENT: ClockInOutCard [main time tracking interface] -->
+        <div class="bg-white rounded-lg card-elevated p-6">
+            <div class="text-center">
+                <div class="mb-4">
+                    <div class="text-4xl font-roboto-condensed font-bold text-gray-800" data-bind="currentTime">2:34 PM</div>
+                    <div class="text-sm text-gray-600" data-bind="currentDate">Tuesday, December 10, 2024</div>
+                </div>
+                
+                <!-- @STATE: clockedIn:boolean = true -->
+                <div class="mb-6">
+                    <div class="inline-flex items-center space-x-2 bg-secondary text-white px-4 py-2 rounded-full">
+                        <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                        <span class="font-medium" data-bind="clockStatus">Clocked In</span>
+                        <span class="text-sm opacity-90" data-bind="clockedTime">since 8:00 AM</span>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <!-- @FUNCTIONALITY: Clock out button should stop GPS tracking and update timesheet -->
+                    <button class="ripple w-full bg-error hover:bg-red-600 text-white font-medium py-4 px-6 rounded-lg transition-colors duration-200" data-event="click:handleClockOut">
+                        <i class="fas fa-sign-out-alt mr-2"></i>
+                        Clock Out
+                    </button>
+                    
+                    <div class="text-sm text-gray-600">
+                        <i class="fas fa-map-marker-alt mr-1 text-primary"></i>
+                        <span data-bind="currentLocation">123 Main St, Springfield, IL</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: ClockInOutCard -->
+
+        <!-- @COMPONENT: QuickStats [hours worked, locations visited] -->
+        <div class="grid md:grid-cols-3 gap-4">
+            <div class="bg-white rounded-lg card-elevated p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-2xl font-bold text-primary" data-bind="todayHours">6.5</div>
+                        <div class="text-sm text-gray-600">Hours Today</div>
+                    </div>
+                    <i class="fas fa-clock text-primary text-xl"></i>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg card-elevated p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-2xl font-bold text-secondary" data-bind="locationsVisited">8</div>
+                        <div class="text-sm text-gray-600">Locations Today</div>
+                    </div>
+                    <i class="fas fa-map-marked-alt text-secondary text-xl"></i>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg card-elevated p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-2xl font-bold text-warning" data-bind="totalDistance">24.7</div>
+                        <div class="text-sm text-gray-600">Miles Traveled</div>
+                    </div>
+                    <i class="fas fa-route text-warning text-xl"></i>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: QuickStats -->
+
+        <!-- @COMPONENT: LiveLocationMap [GPS tracking and breadcrumb visualization] -->
+        <div class="bg-white rounded-lg card-elevated overflow-hidden">
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-medium">Live Location Tracking</h2>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-2 h-2 bg-secondary rounded-full animate-pulse"></div>
+                        <span class="text-sm text-gray-600">GPS Active</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="h-64 bg-gray-100 relative">
+                <!-- @FUNCTIONALITY: This should integrate with Google Maps API to show real GPS location and breadcrumb trail -->
+                <!-- Interactive map placeholder with breadcrumb visualization -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="text-center text-gray-500">
+                        <i class="fas fa-map text-4xl mb-2"></i>
+                        <div class="text-sm">Interactive Map View</div>
+                        <div class="text-xs">Real-time GPS tracking with breadcrumb trail</div>
+                    </div>
+                </div>
+                
+                <!-- Breadcrumb trail indicators -->
+                <div class="absolute top-4 left-4 space-y-2">
+                    <!-- @MAP: breadcrumbs.map(crumb => ( -->
+                    <div class="bg-white rounded-full p-2 shadow-md">
+                        <div class="w-3 h-3 bg-secondary rounded-full"></div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+            </div>
+            
+            <div class="p-4 bg-gray-50">
+                <div class="text-sm text-gray-600">
+                    Last updated: <span data-bind="lastGpsUpdate">2:34:15 PM</span> | 
+                    Accuracy: <span data-bind="gpsAccuracy">±3 meters</span>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: LiveLocationMap -->
+
+        <!-- @COMPONENT: TodayTimelineCard [location departure history] -->
+        <div class="bg-white rounded-lg card-elevated p-6">
+            <h2 class="text-lg font-medium mb-4">Today's Activity Timeline</h2>
+            
+            <div class="space-y-4">
+                <!-- @MAP: timelineEvents.map(event => ( -->
+                <div class="flex items-start space-x-4">
+                    <div class="flex-shrink-0 w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                        <i class="fas fa-clock text-white text-sm" data-mock="true"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm font-medium" data-bind="event.time" data-mock="true">8:00 AM</div>
+                            <div class="text-xs text-gray-500" data-bind="event.duration" data-mock="true">2.5 hrs</div>
+                        </div>
+                        <div class="text-sm text-gray-600" data-bind="event.action" data-mock="true">Clocked In</div>
+                        <div class="text-xs text-gray-500" data-bind="event.location" data-mock="true">Main Office - 123 Business Ave</div>
+                    </div>
+                </div>
+                
+                <div class="flex items-start space-x-4">
+                    <div class="flex-shrink-0 w-10 h-10 bg-warning rounded-full flex items-center justify-center">
+                        <i class="fas fa-map-marker-alt text-white text-sm" data-mock="true"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm font-medium" data-bind="event.time" data-mock="true">10:30 AM</div>
+                            <div class="text-xs text-gray-500" data-bind="event.duration" data-mock="true">1.5 hrs</div>
+                        </div>
+                        <div class="text-sm text-gray-600" data-bind="event.action" data-mock="true">Location Changed</div>
+                        <div class="text-xs text-gray-500" data-bind="event.location" data-mock="true">Client Site - 456 Industrial Blvd</div>
+                    </div>
+                </div>
+                
+                <div class="flex items-start space-x-4">
+                    <div class="flex-shrink-0 w-10 h-10 bg-secondary rounded-full flex items-center justify-center">
+                        <i class="fas fa-route text-white text-sm" data-mock="true"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm font-medium" data-bind="event.time" data-mock="true">12:00 PM</div>
+                            <div class="text-xs text-gray-500" data-bind="event.duration" data-mock="true">Current</div>
+                        </div>
+                        <div class="text-sm text-gray-600" data-bind="event.action" data-mock="true">En Route</div>
+                        <div class="text-xs text-gray-500" data-bind="event.location" data-mock="true">Warehouse - 789 Storage Way</div>
+                    </div>
+                </div>
+                <!-- @END_MAP )) -->
+            </div>
+        </div>
+        <!-- @END_COMPONENT: TodayTimelineCard -->
+
+        <!-- @COMPONENT: SpreadsheetIntegration [Google Sheets sync status] -->
+        <div class="bg-white rounded-lg card-elevated p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-medium">Spreadsheet Integration</h2>
+                <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 bg-secondary rounded-full"></div>
+                    <span class="text-sm text-gray-600">Connected</span>
+                </div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Last Sync:</span>
+                        <span class="text-sm font-medium" data-bind="lastSync">2:33 PM</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Auto-sync:</span>
+                        <span class="text-sm font-medium text-secondary">Enabled</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Records Today:</span>
+                        <span class="text-sm font-medium" data-bind="recordsToday">12</span>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <!-- @FUNCTIONALITY: Manual sync button should trigger immediate spreadsheet update -->
+                    <button class="ripple w-full bg-primary hover:bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-md transition-colors duration-200" data-event="click:handleManualSync">
+                        <i class="fas fa-sync-alt mr-2"></i>
+                        Sync Now
+                    </button>
+                    
+                    <button class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium py-2 px-4 rounded-md transition-colors duration-200" data-event="click:handleViewSpreadsheet">
+                        <i class="fas fa-external-link-alt mr-2"></i>
+                        View Spreadsheet
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: SpreadsheetIntegration -->
+
+        <!-- @COMPONENT: WeeklyTimesheet [hours summary] -->
+        <div class="bg-white rounded-lg card-elevated p-6">
+            <h2 class="text-lg font-medium mb-4">This Week's Timesheet</h2>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="border-b border-gray-200">
+                        <tr>
+                            <th class="text-left py-3 font-medium text-gray-700">Date</th>
+                            <th class="text-left py-3 font-medium text-gray-700">Clock In</th>
+                            <th class="text-left py-3 font-medium text-gray-700">Clock Out</th>
+                            <th class="text-left py-3 font-medium text-gray-700">Total Hours</th>
+                            <th class="text-left py-3 font-medium text-gray-700">Locations</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <!-- @MAP: weeklyTimesheet.map(entry => ( -->
+                        <tr data-mock="true">
+                            <td class="py-3" data-bind="entry.date">Mon, Dec 9</td>
+                            <td class="py-3" data-bind="entry.clockIn">8:00 AM</td>
+                            <td class="py-3" data-bind="entry.clockOut">5:00 PM</td>
+                            <td class="py-3 font-medium" data-bind="entry.totalHours">8.0 hrs</td>
+                            <td class="py-3" data-bind="entry.locationCount">5</td>
+                        </tr>
+                        <tr data-mock="true">
+                            <td class="py-3" data-bind="entry.date">Tue, Dec 10</td>
+                            <td class="py-3" data-bind="entry.clockIn">8:00 AM</td>
+                            <td class="py-3 text-secondary" data-bind="entry.clockOut">In Progress</td>
+                            <td class="py-3 font-medium" data-bind="entry.totalHours">6.5 hrs</td>
+                            <td class="py-3" data-bind="entry.locationCount">8</td>
+                        </tr>
+                        <!-- @END_MAP )) -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm font-medium text-gray-700">Week Total:</span>
+                    <span class="text-lg font-bold text-primary" data-bind="weekTotal">14.5 hours</span>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: WeeklyTimesheet -->
+
+    </main>
+
+    <!-- @COMPONENT: FloatingActionButton [quick actions] -->
+    <div class="fixed bottom-6 right-6 space-y-3">
+        <!-- @FUNCTIONALITY: Emergency clock out for GPS/connection issues -->
+        <button class="w-14 h-14 bg-error hover:bg-red-600 text-white rounded-full shadow-lg flex items-center justify-center transition-colors duration-200" data-event="click:handleEmergencyClockOut" title="Emergency Clock Out">
+            <i class="fas fa-exclamation-triangle"></i>
+        </button>
+    </div>
+    <!-- @END_COMPONENT: FloatingActionButton -->
+
+    <script>
+        // TODO: Implement real-time GPS tracking using browser geolocation API
+        // TODO: Implement Google Sheets integration for automatic updates
+        // TODO: Implement location departure detection and logging
+        // TODO: Add error handling for GPS permissions and connectivity issues
+        
+        (function() {
+            // Mock real-time clock update
+            function updateClock() {
+                const now = new Date();
+                const timeElements = document.querySelectorAll('[data-bind="currentTime"]');
+                const dateElements = document.querySelectorAll('[data-bind="currentDate"]');
+                
+                timeElements.forEach(el => {
+                    el.textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                });
+                
+                dateElements.forEach(el => {
+                    el.textContent = now.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    });
+                });
+            }
+            
+            // Update clock every second
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            // Mock GPS status indicator
+            const gpsIndicators = document.querySelectorAll('.animate-pulse');
+            setInterval(() => {
+                gpsIndicators.forEach(indicator => {
+                    indicator.style.opacity = indicator.style.opacity === '0.3' ? '1' : '0.3';
+                });
+            }, 1000);
+        })();
+    </script>
+</body>
+</html>
