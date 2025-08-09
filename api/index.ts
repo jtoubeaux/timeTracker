@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "../server/routes"; // <-- Corrected path
-import { setupVite, serveStatic, log } from "../server/vite"; // <-- Corrected path
+import { registerRoutes } from "../server/routes";
+import { setupVite, log } from "../server/vite";
 
 const app = express();
 app.use(express.json());
@@ -47,10 +47,11 @@ app.use((req, res, next) => {
     throw err;
   });
 
+  // This `if` block is for local development.
+  // On Vercel, NODE_ENV is "production", so this block is skipped.
+  // We have removed the `else` block that was causing the error.
   if (app.get("env") === "development") {
     await setupVite(app, server);
-  } else {
-    serveStatic(app);
   }
 })();
 
